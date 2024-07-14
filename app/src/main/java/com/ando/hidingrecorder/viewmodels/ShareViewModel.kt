@@ -2,8 +2,10 @@ package com.ando.hidingrecorder.viewmodels
 
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import com.ando.hidingrecorder.RService
 
 class ShareViewModel : ViewModel() {
+    val serviceStatus = NonNullMutableLiveData(RService.None)
     val recording = NonNullMutableLiveData(false)
 }
 

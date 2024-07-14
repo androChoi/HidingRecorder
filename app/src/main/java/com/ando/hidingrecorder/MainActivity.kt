@@ -1,14 +1,15 @@
 package com.ando.hidingrecorder
 
 import android.Manifest
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.media.MediaPlayer
-import android.media.MediaRecorder
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -18,34 +19,73 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.content.ContextCompat
 import androidx.navigation.compose.rememberNavController
 import com.ando.hidingrecorder.ui.theme.HidingRecorderTheme
 import com.ando.hidingrecorder.viewmodels.ShareViewModel
-import java.io.File
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.io.IOException
 
 private const val TAG = "MainActivity"
-private const val REQUEST_RECORD_AUDIO_PERMISSION = 200
 class MainActivity : ComponentActivity() {
-    private var permissionToRecordAccepted = false
-    private var permissions: Array<String> = arrayOf(Manifest.permission.RECORD_AUDIO)
-
     private var player : MediaPlayer? = null
 
     val prefs : Preference by lazy { Preference(context = this)}
     val shareViewModel : ShareViewModel by viewModels()
 
+    private val receiver : BroadcastReceiver by lazy {
+        object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                shareViewModel.serviceStatus.value = RService.getStatus(intent?.getStringExtra("content") ?: "")
+            }
+        }
+    }
+
+    fun setCommandRecorder(cmd : RecorderCommand){
+
+        when(cmd){
+            RecorderCommand.ServiceOn -> {
+                Log.i(TAG,"NONE")
+                val serviceIntent = Intent(this, RecordService::class.java)
+                startService(serviceIntent)
+
+
+            }
+            RecorderCommand.ServiceOff -> {
+                val serviceIntent = Intent(this, RecordService::class.java)
+                stopService(serviceIntent)
+            }
+            RecorderCommand.StartRecord -> {
+                val dataIntent = Intent(Intent.ACTION_SEND)
+                dataIntent.putExtra("content",RecorderCommand.StartRecord.name)
+                sendBroadcast(dataIntent)
+            }
+            RecorderCommand.StopRecord -> {
+                val dataIntent = Intent(Intent.ACTION_SEND)
+                dataIntent.putExtra("content",RecorderCommand.StopRecord.name)
+                sendBroadcast(dataIntent)
+            }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        registerReceiver(receiver, IntentFilter(Intent.ACTION_SEND))
+    }
+
+    override fun onPause() {
+        super.onPause()
+        unregisterReceiver(receiver)
+    }
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-
         setContent {
             HidingRecorderTheme {
                 Surface(

@@ -28,7 +28,9 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import com.ando.hidingrecorder.MainActivity
 import com.ando.hidingrecorder.NavigationItem
 import com.ando.hidingrecorder.R
+import com.ando.hidingrecorder.RService
 import com.ando.hidingrecorder.RecordService
+import com.ando.hidingrecorder.RecorderCommand
 import com.ando.hidingrecorder.ui.layouts.BaseTopLayout
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -53,7 +55,6 @@ fun HomeMidLayout(activity : MainActivity){
     var recordingText by remember{ mutableStateOf("record")}
     var clickLock by remember{ mutableStateOf(true)}
 
-
     Column(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -61,17 +62,28 @@ fun HomeMidLayout(activity : MainActivity){
     ) {
         Button(onClick = {
             if(clickLock) {
+
                 clickLock = false
-                if (!activity.shareViewModel.recording.value) {
-                    recordingText = "record stop"
-                    svm.recording.value = true
-                    Log.i(TAG, "recording Start")
-                    val serviceIntent = Intent(activity, RecordService::class.java)
-                    activity.startService(serviceIntent)
-                } else {
-                    recordingText = "record"
-                    svm.recording.value = false
-                    Log.i(TAG, "record")
+
+                when(svm.serviceStatus.value) {
+                    RService.None -> {
+                        activity.setCommandRecorder(RecorderCommand.ServiceOn)
+                        recordingText = "record stop"
+                        svm.recording.value = true
+                        svm.serviceStatus.value = RService.Standby
+                    }
+
+                    RService.Standby -> {
+                        Log.i(TAG,"Standby")
+                        activity.setCommandRecorder(RecorderCommand.StartRecord)
+                    }
+
+                    RService.Recording -> {
+
+                        activity.setCommandRecorder(RecorderCommand.StopRecord)
+                        recordingText = "record"
+                        svm.recording.value = false
+                    }
                 }
 
                 CoroutineScope(Dispatchers.Main).launch {
