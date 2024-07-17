@@ -47,27 +47,19 @@ class MainActivity : ComponentActivity() {
     }
 
     fun setCommandRecorder(cmd : RecorderCommand){
-
         when(cmd){
             RecorderCommand.ServiceOn -> {
                 Log.i(TAG,"NONE")
                 val serviceIntent = Intent(this, RecordService::class.java)
                 startService(serviceIntent)
-
-
             }
             RecorderCommand.ServiceOff -> {
                 val serviceIntent = Intent(this, RecordService::class.java)
                 stopService(serviceIntent)
             }
-            RecorderCommand.StartRecord -> {
+            else ->{
                 val dataIntent = Intent(Intent.ACTION_SEND)
-                dataIntent.putExtra("content",RecorderCommand.StartRecord.name)
-                sendBroadcast(dataIntent)
-            }
-            RecorderCommand.StopRecord -> {
-                val dataIntent = Intent(Intent.ACTION_SEND)
-                dataIntent.putExtra("content",RecorderCommand.StopRecord.name)
+                dataIntent.putExtra("content",cmd.name)
                 sendBroadcast(dataIntent)
             }
         }
