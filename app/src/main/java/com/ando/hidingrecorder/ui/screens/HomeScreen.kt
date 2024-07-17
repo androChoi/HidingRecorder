@@ -67,7 +67,7 @@ fun HomeMidLayout(activity : MainActivity){
 
                 when(svm.serviceStatus.value) {
                     RService.None -> {
-                        activity.setCommandRecorder(RecorderCommand.ServiceOn)
+                        activity.startRecordingService()
                         recordingText = "record stop"
                         svm.recording.value = true
                         svm.serviceStatus.value = RService.Standby

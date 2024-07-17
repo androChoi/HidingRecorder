@@ -12,16 +12,12 @@ enum class RService(val status : String) {
                 Standby.status -> Standby
                 else -> None
             }
-
     }
 }
 
 enum class RecorderCommand{
-    ServiceOn,
-    ServiceOff,
     StartRecord,
     StopRecord,
     RequestRecordingStatus(),
     RequestServiceState(),
-
 }

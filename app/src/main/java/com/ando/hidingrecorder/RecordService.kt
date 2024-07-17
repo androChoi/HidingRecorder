@@ -49,6 +49,27 @@ class RecordService : Service(), RecordListener {
         object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
                 Log.i(TAG, "브로드캐스트 수신: ${intent!!.getStringExtra("content")}")
+                handleCommand(intent.getStringExtra("content")?:"none")
+            }
+        }
+    }
+
+    //아 ;; Broadcast를 자기 것도 수신하는 건 처음 알았네 재수정을 해야할 듯
+    fun handleCommand(cmd : String){
+        when(cmd){
+            RecorderCommand.StartRecord.name->{
+
+            }
+            RecorderCommand.StopRecord.name ->{
+
+            }
+            RecorderCommand.RequestRecordingStatus.name->{
+
+            }
+            RecorderCommand.RequestServiceState.name->{
+                val dataIntent = Intent(Intent.ACTION_SEND)
+                dataIntent.putExtra("content",RecorderCommand.RequestServiceState.name)
+                sendBroadcast(dataIntent)
             }
         }
     }
@@ -75,8 +96,6 @@ class RecordService : Service(), RecordListener {
         val file = File(fileName)
 
         if (file.exists()) {
-            // 파일이 존재할 경우 파일을 읽어옵니다.
-            // 여기서는 파일의 내용을 출력하는 예시를 보여줍니다.
             val content = file.name
             Log.i(TAG,"file : $content")
         } else {
@@ -89,6 +108,7 @@ class RecordService : Service(), RecordListener {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         intent?.let{
             val data = it.getStringExtra("data")
+
             Log.i(TAG, "data : ${data ?: ""}")
         }
         return START_STICKY

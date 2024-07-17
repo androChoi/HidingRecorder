@@ -41,28 +41,27 @@ class MainActivity : ComponentActivity() {
     private val receiver : BroadcastReceiver by lazy {
         object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
-                shareViewModel.serviceStatus.value = RService.getStatus(intent?.getStringExtra("content") ?: "")
+                Log.i(TAG, "브로드캐스트 수신: ${intent!!.getStringExtra("content")}")
+//                shareViewModel.serviceStatus.value = RService.getStatus(intent?.getStringExtra("content") ?: "")
             }
         }
     }
 
+    fun startRecordingService(){
+        val serviceIntent = Intent(this, RecordService::class.java)
+        startService(serviceIntent)
+    }
+
+    fun stopRecordingService(){
+        val serviceIntent = Intent(this, RecordService::class.java)
+        stopService(serviceIntent)
+    }
+
     fun setCommandRecorder(cmd : RecorderCommand){
-        when(cmd){
-            RecorderCommand.ServiceOn -> {
-                Log.i(TAG,"NONE")
-                val serviceIntent = Intent(this, RecordService::class.java)
-                startService(serviceIntent)
-            }
-            RecorderCommand.ServiceOff -> {
-                val serviceIntent = Intent(this, RecordService::class.java)
-                stopService(serviceIntent)
-            }
-            else ->{
-                val dataIntent = Intent(Intent.ACTION_SEND)
-                dataIntent.putExtra("content",cmd.name)
-                sendBroadcast(dataIntent)
-            }
-        }
+        val dataIntent = Intent(Intent.ACTION_SEND)
+        dataIntent.putExtra("content",cmd.name)
+        Log.i(TAG,cmd.name)
+        sendBroadcast(dataIntent)
     }
 
     override fun onResume() {
@@ -87,6 +86,13 @@ class MainActivity : ComponentActivity() {
                     RequestPermissionInComposable(applicationContext)
                     AppNavHost(navController = rememberNavController())
                 }
+            }
+        }
+
+        CoroutineScope(Dispatchers.IO).launch {
+            while(true){
+                delay(2000)
+                setCommandRecorder(RecorderCommand.RequestServiceState)
             }
         }
     }
