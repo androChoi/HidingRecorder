@@ -1,35 +1,20 @@
 package com.ando.hidingrecorder
 
 import android.annotation.SuppressLint
-import android.app.Notification
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.app.PendingIntent
 import android.app.Service
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.media.MediaPlayer
 import android.media.MediaRecorder
 import android.os.Build
-import android.os.Handler
 import android.os.IBinder
-import android.os.Looper
-import android.os.Message
-import android.os.Messenger
-import android.os.Parcel
 import android.util.Log
 import androidx.annotation.RequiresApi
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Color.Companion.Cyan
-import androidx.compose.ui.graphics.Color.Companion.Red
-import androidx.core.app.NotificationCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import java.io.File
 import java.io.IOException
@@ -39,8 +24,8 @@ class RecordService : Service(), RecordListener {
         private const val TAG = "RecordService"
         private const val NT_ID = 1
     }
-    private var sendData = 0
-    private var receiveData = 0
+
+    private var recordingState = MutableStateFlow(RecordState.None.status)
 
     private var recorder :MediaRecorder? = null
     private var fileName = ""
@@ -54,22 +39,22 @@ class RecordService : Service(), RecordListener {
         }
     }
 
-    //아 ;; Broadcast를 자기 것도 수신하는 건 처음 알았네 재수정을 해야할 듯
     fun handleCommand(cmd : String){
         when(cmd){
+            //TODO UI와의 시차로 start를 2번 내릴 경우에 예외 처리를 진행하자
             RecorderCommand.StartRecord.name->{
-
+                startRecording()
             }
             RecorderCommand.StopRecord.name ->{
-
+                stopRecording()
             }
             RecorderCommand.RequestRecordingStatus.name->{
-
+                sendBroadcast(Intent(Intent.ACTION_SEND).putExtra("content",recordingState.value))
             }
             RecorderCommand.RequestServiceState.name->{
-                val dataIntent = Intent(Intent.ACTION_SEND)
-                dataIntent.putExtra("content",RecorderCommand.RequestServiceState.name)
-                sendBroadcast(dataIntent)
+                //On이 오면 Service가 켜져있는 경우...
+                //Off일 경우는 없지만 On이라고 알려주는 케이스는 분명히 존재하기 때문에 무조건 있어야 합니당.
+                sendBroadcast(Intent(Intent.ACTION_SEND).putExtra("content","On!"))
             }
         }
     }
@@ -123,6 +108,12 @@ class RecordService : Service(), RecordListener {
     }
 
     private fun startRecording(){
+        if(recorder != null) {
+            stopRecording()
+            return
+        }
+
+
         recorder = MediaRecorder().apply {
             setAudioSource(MediaRecorder.AudioSource.MIC)
             setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP)
@@ -139,7 +130,6 @@ class RecordService : Service(), RecordListener {
             start()
         }
     }
-
     private fun stopRecording(){
         recorder?.apply{
             stop()

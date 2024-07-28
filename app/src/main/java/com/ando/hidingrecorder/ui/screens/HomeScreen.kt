@@ -1,19 +1,13 @@
 package com.ando.hidingrecorder.ui.screens
 
-import android.Manifest
 import android.app.Activity
-import android.content.Context
-import android.content.Intent
 import android.util.Log
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -28,8 +22,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import com.ando.hidingrecorder.MainActivity
 import com.ando.hidingrecorder.NavigationItem
 import com.ando.hidingrecorder.R
-import com.ando.hidingrecorder.RService
-import com.ando.hidingrecorder.RecordService
+import com.ando.hidingrecorder.RecordState
 import com.ando.hidingrecorder.RecorderCommand
 import com.ando.hidingrecorder.ui.layouts.BaseTopLayout
 import kotlinx.coroutines.CoroutineScope
@@ -51,7 +44,7 @@ fun HomeScreen(navController: NavController) {
 
 @Composable
 fun HomeMidLayout(activity : MainActivity){
-    val svm = activity.shareViewModel
+    val shareViewModel = activity.shareViewModel
     var recordingText by remember{ mutableStateOf("record")}
     var clickLock by remember{ mutableStateOf(true)}
 
@@ -65,24 +58,24 @@ fun HomeMidLayout(activity : MainActivity){
 
                 clickLock = false
 
-                when(svm.serviceStatus.value) {
-                    RService.None -> {
+                when(shareViewModel.serviceStatus.value) {
+                    RecordState.None.status -> {
                         activity.startRecordingService()
                         recordingText = "record stop"
-                        svm.recording.value = true
-                        svm.serviceStatus.value = RService.Standby
+                        shareViewModel.recording.value = true
+                        shareViewModel.serviceStatus.value = RecordState.None.status
                     }
 
-                    RService.Standby -> {
+                    RecordState.Standby.status -> {
                         Log.i(TAG,"Standby")
                         activity.setCommandRecorder(RecorderCommand.StartRecord)
                     }
 
-                    RService.Recording -> {
+                    RecordState.Recording.status -> {
 
                         activity.setCommandRecorder(RecorderCommand.StopRecord)
                         recordingText = "record"
-                        svm.recording.value = false
+                        shareViewModel.recording.value = false
                     }
                 }
 

@@ -1,6 +1,6 @@
 package com.ando.hidingrecorder
 
-enum class RService(val status : String) {
+enum class RecordState(val status : String) {
     None("None"),
     Standby("Standby"),
     Recording("Recording");
@@ -18,6 +18,6 @@ enum class RService(val status : String) {
 enum class RecorderCommand{
     StartRecord,
     StopRecord,
-    RequestRecordingStatus(),
-    RequestServiceState(),
+    RequestRecordingStatus,
+    RequestServiceState,
 }

@@ -22,18 +22,22 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.rememberNavController
 import com.ando.hidingrecorder.ui.theme.HidingRecorderTheme
 import com.ando.hidingrecorder.viewmodels.ShareViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.IOException
 
 private const val TAG = "MainActivity"
 class MainActivity : ComponentActivity() {
     private var player : MediaPlayer? = null
+    private val scope = CoroutineScope(lifecycleScope.coroutineContext)
 
     val prefs : Preference by lazy { Preference(context = this)}
     val shareViewModel : ShareViewModel by viewModels()
@@ -41,8 +45,35 @@ class MainActivity : ComponentActivity() {
     private val receiver : BroadcastReceiver by lazy {
         object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
-                Log.i(TAG, "브로드캐스트 수신: ${intent!!.getStringExtra("content")}")
-//                shareViewModel.serviceStatus.value = RService.getStatus(intent?.getStringExtra("content") ?: "")
+                shareViewModel.serviceStatus.update {
+                    RecordState.getStatus(intent?.getStringExtra("content").orEmpty())
+                }
+            }
+        }
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        collectStateFlow()
+        setContent {
+            HidingRecorderTheme {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    RequestPermissionInComposable(applicationContext)
+                    AppNavHost(navController = rememberNavController())
+                }
+            }
+        }
+
+
+    }
+
+    private fun collectStateFlow(){
+        scope.launch {
+            shareViewModel.serviceStatus.collect{
+                
             }
         }
     }
@@ -52,7 +83,7 @@ class MainActivity : ComponentActivity() {
         startService(serviceIntent)
     }
 
-    fun stopRecordingService(){
+    private fun stopRecordingService(){
         val serviceIntent = Intent(this, RecordService::class.java)
         stopService(serviceIntent)
     }
@@ -72,29 +103,6 @@ class MainActivity : ComponentActivity() {
     override fun onPause() {
         super.onPause()
         unregisterReceiver(receiver)
-    }
-
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContent {
-            HidingRecorderTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    RequestPermissionInComposable(applicationContext)
-                    AppNavHost(navController = rememberNavController())
-                }
-            }
-        }
-
-        CoroutineScope(Dispatchers.IO).launch {
-            while(true){
-                delay(2000)
-                setCommandRecorder(RecorderCommand.RequestServiceState)
-            }
-        }
     }
 
     fun onPlay(start : Boolean, fileName : String) = if(start){
@@ -122,6 +130,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        stopRecordingService()
         stopPlaying()
     }
 
