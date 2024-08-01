@@ -15,9 +15,12 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.File
 import java.io.IOException
+import kotlin.coroutines.coroutineContext
 
 class RecordService : Service(), RecordListener {
     companion object{
@@ -25,7 +28,8 @@ class RecordService : Service(), RecordListener {
         private const val NT_ID = 1
     }
 
-    private var recordingState = MutableStateFlow(RecordState.None.status)
+    private val scope = CoroutineScope(Dispatchers.Main)
+    private val recordingState by lazy { MutableStateFlow(RecordState.None) }
 
     private var recorder :MediaRecorder? = null
     private var fileName = ""
@@ -39,34 +43,11 @@ class RecordService : Service(), RecordListener {
         }
     }
 
-    fun handleCommand(cmd : String){
-        when(cmd){
-            //TODO UI와의 시차로 start를 2번 내릴 경우에 예외 처리를 진행하자
-            RecorderCommand.StartRecord.name->{
-                startRecording()
-            }
-            RecorderCommand.StopRecord.name ->{
-                stopRecording()
-            }
-            RecorderCommand.RequestRecordingStatus.name->{
-                sendBroadcast(Intent(Intent.ACTION_SEND).putExtra("content",recordingState.value))
-            }
-            RecorderCommand.RequestServiceState.name->{
-                //On이 오면 Service가 켜져있는 경우...
-                //Off일 경우는 없지만 On이라고 알려주는 케이스는 분명히 존재하기 때문에 무조건 있어야 합니당.
-                sendBroadcast(Intent(Intent.ACTION_SEND).putExtra("content","On!"))
-            }
-        }
-    }
-
-    override fun onBind(intent: Intent?): IBinder? {
-        return null
-    }
-
     @SuppressLint("UnspecifiedRegisterReceiverFlag")
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     override fun onCreate() {
         super.onCreate()
+        collectState()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(receiver, IntentFilter(Intent.ACTION_SEND), Context.RECEIVER_NOT_EXPORTED)
@@ -88,6 +69,42 @@ class RecordService : Service(), RecordListener {
         }
 
 //        debugCode()
+    }
+
+    private fun collectState() {
+        scope.launch {
+            recordingState.collect{
+                when(it){
+                    RecordState.Standby -> {
+                        stopRecording()
+                    }
+                    RecordState.Recording -> {
+                        startRecording()
+                    }
+                    else ->{
+                        Log.e(TAG,"state is ERROR!!!")
+                    }
+                }
+            }
+        }
+    }
+
+    fun handleCommand(cmd : String){
+        when(cmd){
+            RecorderCommand.StartRecord.name->{
+                recordingState.update { RecordState.Recording }
+            }
+            RecorderCommand.StopRecord.name ->{
+                recordingState.update { RecordState.Standby }
+            }
+            RecorderCommand.RequestRecordingStatus.name->{
+                sendBroadcast(Intent(Intent.ACTION_SEND).putExtra("content",recordingState.value))
+            }
+        }
+    }
+
+    override fun onBind(intent: Intent?): IBinder? {
+        return null
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {

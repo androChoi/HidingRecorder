@@ -73,7 +73,7 @@ class MainActivity : ComponentActivity() {
     private fun collectStateFlow(){
         scope.launch {
             shareViewModel.serviceStatus.collect{
-                
+
             }
         }
     }

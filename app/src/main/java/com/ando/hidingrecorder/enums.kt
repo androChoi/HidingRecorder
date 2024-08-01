@@ -19,5 +19,4 @@ enum class RecorderCommand{
     StartRecord,
     StopRecord,
     RequestRecordingStatus,
-    RequestServiceState,
 }

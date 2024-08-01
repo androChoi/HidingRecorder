@@ -59,20 +59,19 @@ fun HomeMidLayout(activity : MainActivity){
                 clickLock = false
 
                 when(shareViewModel.serviceStatus.value) {
-                    RecordState.None.status -> {
+                    RecordState.None -> {
                         activity.startRecordingService()
                         recordingText = "record stop"
                         shareViewModel.recording.value = true
-                        shareViewModel.serviceStatus.value = RecordState.None.status
+                        shareViewModel.serviceStatus.value = RecordState.None
                     }
 
-                    RecordState.Standby.status -> {
+                    RecordState.Standby -> {
                         Log.i(TAG,"Standby")
                         activity.setCommandRecorder(RecorderCommand.StartRecord)
                     }
 
-                    RecordState.Recording.status -> {
-
+                    RecordState.Recording -> {
                         activity.setCommandRecorder(RecorderCommand.StopRecord)
                         recordingText = "record"
                         shareViewModel.recording.value = false
